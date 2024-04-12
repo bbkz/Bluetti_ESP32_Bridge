@@ -360,7 +360,7 @@ void publishTopic(enum field_names field_name, String value){
     lastMQTTMessage = millis();
     #ifdef HOMEASSISTANT
       sprintf(publishTopicBuf, "homeassistant/sensor/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
-      String value = "{\"state_topic\":\""+ publishTopicBuf.c_str() +"\","
+      String value = "{\"state_topic\":\""+ String(publishTopicBuf) +"\","
         "\"device\":{"
           "\"identifiers\":[\""+ settings.bluetti_device_id +"\"],"
           "\"manufacturer\":\"Bluetti\","
