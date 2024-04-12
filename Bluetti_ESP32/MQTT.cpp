@@ -323,18 +323,21 @@ void subscribeTopic(enum field_names field_name) {
 #endif
   char subscribeTopicBuf[512];
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-#ifdef HOMEASSISTANT
-  sprintf(subscribeTopicBuf, "homeassistant/switch/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
-#else
   sprintf(subscribeTopicBuf, "bluetti/%s/command/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() );
-#endif
   client.subscribe(subscribeTopicBuf);
+#ifdef HOMEASSISTANT
+  char subscribeHATopicBuf[512];
+  //@todo create payload for switch
+  sprintf(subscribeHATopicBuf, "homeassistant/switch/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
+  client.subscribe(subscribeHATopicBuf);  
+#endif
   lastMQTTMessage = millis();
 
 }
 
 void publishTopic(enum field_names field_name, String value){
   char publishTopicBuf[1024];
+
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
  
 #ifdef DEBUG
@@ -343,13 +346,11 @@ void publishTopic(enum field_names field_name, String value){
   
   //sometimes we get empty values / wrong vales - all the time device_type is empty
   if (map_field_name(field_name) == "device_type" && value.length() < 3){
-
-    //Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
+    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
     ESP.restart();
-    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
-   // btResetStack();
-   
-  } 
+    //Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
+    //btResetStack();
+  }
 
   if (strlen(settings.mqtt_server) == 0){
     AddtoMsgView(String(millis()) +": " + map_field_name(field_name) + " -> " + value); 
@@ -358,8 +359,24 @@ void publishTopic(enum field_names field_name, String value){
     #endif
   } else {
     lastMQTTMessage = millis();
+    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() );
+    if (!client.publish(publishTopicBuf, value.c_str() )){
+      publishErrorCount++;
+      #ifdef DEBUG
+        Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+      #endif
+      AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+    } else {
+      #ifdef DEBUG
+        Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+      #endif
+      AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+    }
+
     #ifdef HOMEASSISTANT
-      sprintf(publishTopicBuf, "homeassistant/sensor/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
+      char publishHATopicBuf[1024];
+
+      sprintf(publishHATopicBuf, "homeassistant/sensor/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
       String value = "{\"state_topic\":\""+ String(publishTopicBuf) +"\","
         "\"device\":{"
           "\"identifiers\":[\""+ settings.bluetti_device_id +"\"],"
@@ -373,35 +390,30 @@ void publishTopic(enum field_names field_name, String value){
         "\"device_class\":\"battery\","
         "\"state_class\":\"measurement\","
         "\"force_update\":true}\"";
-    #else
-        sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() ); 
+
+      if (!client.publish(publishHATopicBuf, value.c_str() )){
+        publishErrorCount++;
+        #ifdef DEBUG
+          Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+        #endif
+        AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+      } else {
+        #ifdef DEBUG
+          Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+        #endif
+        AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+      }
     #endif
-    if (!client.publish(publishTopicBuf, value.c_str() )){
-      publishErrorCount++;
-      #ifdef DEBUG
-        Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
-      #endif
-      AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
-    } else {
-      #ifdef DEBUG
-        Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
-      #endif
-      AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
-    }
   }
   
  
 }
 
 void publishDeviceState(){
-  char publishTopicBuf[1024];
-
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-  #ifdef HOMEASSISTANT
-    sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device" );
-  #else
-    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" );
-  #endif
+  char publishTopicBuf[1024];
+  
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" );
   String value = "{\"IP\":\"" + WiFi.localIP().toString() + "\", \"MAC\":\"" + WiFi.macAddress() + "\", \"Uptime\":" + millis() + "}";
   #ifdef DEBUG
     Serial.println("[MQTT] PublishingDeviceState: "+value);
@@ -409,6 +421,11 @@ void publishDeviceState(){
   if (!client.publish(publishTopicBuf, value.c_str() )){
     publishErrorCount++;
   }
+  #ifdef HOMEASSISTANT
+    char publishHATopicBuf[1024];
+    sprintf(publishHATopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device" );
+  #endif
+
   lastMQTTMessage = millis();
   previousDeviceStatePublish = millis();
  
@@ -418,11 +435,8 @@ void publishDeviceStateStatus(){
   char publishTopicBuf[1024];
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-  #ifdef HOMEASSISTANT
-    sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device_status" );
-  #else
-    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" ); 
-  #endif
+  
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" );
   String value = "{\"MQTTconnected\":" + String(isMQTTconnected()) + ", \"BTconnected\":" + String(isBTconnected()) + "}";
   #ifdef DEBUG
     Serial.println("[MQTT] PublishingDeviceStateStatus: "+value);
@@ -430,6 +444,11 @@ void publishDeviceStateStatus(){
   if (!client.publish(publishTopicBuf, value.c_str() )){
     publishErrorCount++;
   }
+  #ifdef HOMEASSISTANT
+    char publishHATopicBuf[1024];
+    sprintf(publishHATopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device_status" );
+  #endif
+
   lastMQTTMessage = millis();
   previousDeviceStateStatusPublish = millis();
  
