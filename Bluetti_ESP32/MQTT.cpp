@@ -323,6 +323,7 @@ void subscribeTopic(enum field_names field_name) {
 #endif
   char subscribeTopicBuf[512];
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
+
   sprintf(subscribeTopicBuf, "bluetti/%s/command/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() );
   client.subscribe(subscribeTopicBuf);
 #ifdef HOMEASSISTANT
@@ -337,7 +338,6 @@ void subscribeTopic(enum field_names field_name) {
 
 void publishTopic(enum field_names field_name, String value){
   char publishTopicBuf[1024];
-
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
  
 #ifdef DEBUG
@@ -346,27 +346,30 @@ void publishTopic(enum field_names field_name, String value){
   
   //sometimes we get empty values / wrong vales - all the time device_type is empty
   if (map_field_name(field_name) == "device_type" && value.length() < 3){
-    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
-    ESP.restart();
-    //Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
-    //btResetStack();
-  }
 
+    //Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
+    ESP.restart();
+    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
+   // btResetStack();
+   
+  } 
+  
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() ); 
   if (strlen(settings.mqtt_server) == 0){
     AddtoMsgView(String(millis()) +": " + map_field_name(field_name) + " -> " + value); 
     #ifdef DEBUG
       Serial.println("[MQTT] No MQTT server specified!");
     #endif
-  } else {
+  }else{
     lastMQTTMessage = millis();
-    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() );
     if (!client.publish(publishTopicBuf, value.c_str() )){
       publishErrorCount++;
       #ifdef DEBUG
         Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
       #endif
       AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
-    } else {
+    }
+    else{
       #ifdef DEBUG
         Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
       #endif
@@ -374,10 +377,8 @@ void publishTopic(enum field_names field_name, String value){
     }
 
     #ifdef HOMEASSISTANT
-      char publishHATopicBuf[1024];
-
-      sprintf(publishHATopicBuf, "homeassistant/sensor/%s/%s/config", settings.bluetti_device_id, map_field_name(field_name).c_str() );
-      String value = "{\"state_topic\":\""+ String(publishTopicBuf) +"\","
+      String publishHATopicBuf = "homeassistant/sensor/"+ String(settings.bluetti_device_id) +"/"+ map_field_name(field_name).c_str() +"/config";
+      String payload = "{\"state_topic\":\""+ String(publishTopicBuf) +"\","
         "\"device\":{"
           "\"identifiers\":[\""+ settings.bluetti_device_id +"\"],"
           "\"manufacturer\":\"Bluetti\","
@@ -389,19 +390,19 @@ void publishTopic(enum field_names field_name, String value){
         "\"unit_of_measurement\":\"%\","
         "\"device_class\":\"battery\","
         "\"state_class\":\"measurement\","
-        "\"force_update\":true}\"";
-
-      if (!client.publish(publishHATopicBuf, value.c_str() )){
+        "\"force_update\":true}";
+      if (!client.publish( publishHATopicBuf.c_str(), payload.c_str() )){
         publishErrorCount++;
         #ifdef DEBUG
-          Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+          Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + publishHATopicBuf);
+          Serial.println("[MQTT] Publish error: " + String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + payload);
         #endif
-        AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + value);
+        AddtoMsgView(String(lastMQTTMessage) + ": publish ERROR! " + map_field_name(field_name) + " -> " + payload);
       } else {
         #ifdef DEBUG
-          Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+          Serial.println("[MQTT] Last Message: " + String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + payload);
         #endif
-        AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
+        AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + payload);
       }
     #endif
   }
@@ -410,10 +411,10 @@ void publishTopic(enum field_names field_name, String value){
 }
 
 void publishDeviceState(){
-  ESPBluettiSettings settings = get_esp32_bluetti_settings();
   char publishTopicBuf[1024];
-  
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" );
+
+  ESPBluettiSettings settings = get_esp32_bluetti_settings();
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" ); 
   String value = "{\"IP\":\"" + WiFi.localIP().toString() + "\", \"MAC\":\"" + WiFi.macAddress() + "\", \"Uptime\":" + millis() + "}";
   #ifdef DEBUG
     Serial.println("[MQTT] PublishingDeviceState: "+value);
@@ -435,9 +436,8 @@ void publishDeviceStateStatus(){
   char publishTopicBuf[1024];
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-  
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" );
-  String value = "{\"MQTTconnected\":" + String(isMQTTconnected()) + ", \"BTconnected\":" + String(isBTconnected()) + "}";
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" ); 
+  String value = "{\"MQTTconnected\":" + String(isMQTTconnected()) + ", \"BTconnected\":" + String(isBTconnected()) + "}"; 
   #ifdef DEBUG
     Serial.println("[MQTT] PublishingDeviceStateStatus: "+value);
   #endif
@@ -482,6 +482,9 @@ void initMQTT(){
     if (connect_result) {
         
       Serial.println(F("[MQTT] Connected to MQTT Server... "));
+
+      // set payload size
+      client.setBufferSize(MQTT_MAX_PACKET_SIZE);
 
       // subscribe to topics for commands
       for (int i=0; i< sizeof(bluetti_device_command)/sizeof(device_field_data_t); i++){

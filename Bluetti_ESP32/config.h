@@ -36,6 +36,7 @@
 #define MSG_VIEWER_REFRESH_CYCLE 5 //refresh time for website data in seconds
 
 #define HOMEASSISTANT 1 //enable Home Assistant MQTT auto discovery payload
+#define MQTT_MAX_PACKET_SIZE 512 //default is 256 which is too small for Home Assistant auto discovery
 
 #ifndef BLUETTI_TYPE
   #define BLUETTI_TYPE AC300
