@@ -398,9 +398,9 @@ void publishDeviceState(){
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
   #ifdef HOMEASSISTANT
-  sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device" );
+    sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device" );
   #else
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" );
+    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" );
   #endif
   String value = "{\"IP\":\"" + WiFi.localIP().toString() + "\", \"MAC\":\"" + WiFi.macAddress() + "\", \"Uptime\":" + millis() + "}";
   #ifdef DEBUG
@@ -419,9 +419,9 @@ void publishDeviceStateStatus(){
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
   #ifdef HOMEASSISTANT
-  sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device_status" );
+    sprintf(publishTopicBuf, "homeassistant/text/%s/%s/config", settings.bluetti_device_id, "device_status" );
   #else
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" ); 
+    sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" ); 
   #endif
   String value = "{\"MQTTconnected\":" + String(isMQTTconnected()) + ", \"BTconnected\":" + String(isBTconnected()) + "}";
   #ifdef DEBUG

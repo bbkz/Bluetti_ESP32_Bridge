@@ -14,7 +14,7 @@
 #define EEPROM_SALT 13374
 
 #define DEVICE_NAME "BLUETTI-MQTT"
-#define BLUETTI_TYPE AC200M
+#define BLUETTI_TYPE AC300
 
 #define BLUETOOTH_QUERY_MESSAGE_DELAY 3000
 #define BLUETOOTH_MAX_RETRIES_BEFORE_REBOOT 10
@@ -35,7 +35,7 @@
 #define MSG_VIEWER_ENTRY_COUNT 20 //number of lines for web message viewer
 #define MSG_VIEWER_REFRESH_CYCLE 5 //refresh time for website data in seconds
 
-#define HOMEASSISTANT 1
+#define HOMEASSISTANT 1 //enable Home Assistant MQTT auto discovery payload
 
 #ifndef BLUETTI_TYPE
   #define BLUETTI_TYPE AC300
