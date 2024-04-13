@@ -87,33 +87,33 @@ void parse_bluetooth_data(uint8_t page, uint8_t offset, uint8_t* pData, size_t l
                 switch (bluetti_device_state[i].f_type){
                  
                   case UINT_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, String(parse_uint_field(data_payload_field)));
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, String(parse_uint_field(data_payload_field)));
                     break;
     
                   case BOOL_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, String((int)parse_bool_field(data_payload_field)));
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, String((int)parse_bool_field(data_payload_field)));
                     break;
     
                   case DECIMAL_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, String(parse_decimal_field(data_payload_field, bluetti_device_state[i].f_scale ), 2) );
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, String(parse_decimal_field(data_payload_field, bluetti_device_state[i].f_scale ), 2) );
                     break;
     
                   case SN_FIELD:  
                     char sn[16];
                     sprintf(sn, "%lld", parse_serial_field(data_payload_field));
-                    publishTopic(bluetti_device_state[i].f_name, String(sn));
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, String(sn));
                     break;
     
                   case VERSION_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, String(parse_version_field(data_payload_field),2) );    
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, String(parse_version_field(data_payload_field),2) );    
                     break;
 
                   case STRING_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, parse_string_field(data_payload_field));
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, parse_string_field(data_payload_field));
                     break;
                   // doesn't work yet, not implemented further
                   case ENUM_FIELD:
-                    publishTopic(bluetti_device_state[i].f_name, parse_enum_field(data_payload_field));
+                    publishTopic(bluetti_device_state[i].f_name, bluetti_device_state[i].f_type, parse_enum_field(data_payload_field));
                     break;
                   default:
                     break;

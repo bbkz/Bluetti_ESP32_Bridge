@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include "DeviceType.h"
 
-extern void publishTopic(enum field_names field_name, String value);
+extern void publishTopic(enum field_names field_name, enum field_types field_type, String value);
 extern void publishHAConfig();
 extern void publishDeviceState();
 extern void publishDeviceStateStatus();

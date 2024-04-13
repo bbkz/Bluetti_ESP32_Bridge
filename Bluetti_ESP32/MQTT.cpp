@@ -215,6 +215,44 @@ String map_field_name(enum field_names f_name){
   
 }
 
+String map_field_type(enum field_types f_type){
+  switch(f_type) {
+    case UINT_FIELD:
+      return "sensor";
+      break;
+    case BOOL_FIELD:
+      return "binary_sensor";
+      break;
+    case ENUM_FIELD:
+      return "dc_output_power";
+      break;
+    case STRING_FIELD:
+      return "text";
+      break;
+    case DECIMAL_ARRAY_FIELD:
+      return "sensor";
+      break;
+    case DECIMAL_FIELD:
+      return "sensor";
+      break;
+    case VERSION_FIELD:
+      return "text";
+      break;
+    case SN_FIELD:
+      return "text";
+      break;
+    case TYPE_UNDEFINED:
+      return "text";
+      break;
+    default:
+      #ifdef DEBUG
+        Serial.println(F("Info 'map_field_type' found unknown type!"));
+      #endif
+      return "text";
+      break;
+  }
+}
+
 //There is no reflection to do string to enum
 //There are a couple of ways to work aroung it... but basically are just "case" statements
 //Wapped them in a fuction
@@ -336,21 +374,21 @@ void subscribeTopic(enum field_names field_name) {
 
 }
 
-void publishTopic(enum field_names field_name, String value){
+void publishTopic(enum field_names field_name, enum field_types field_type, String value){
   char publishTopicBuf[1024];
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
  
-#ifdef DEBUG
-  Serial.println("[MQTT] publish topic for field: " +  map_field_name(field_name));
-#endif
+  #ifdef DEBUG
+    Serial.println("[MQTT] publish topic for field: " +  map_field_name(field_name));
+  #endif
   
   //sometimes we get empty values / wrong vales - all the time device_type is empty
   if (map_field_name(field_name) == "device_type" && value.length() < 3){
 
-    //Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
+    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, reboot device)"));
     ESP.restart();
-    Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
-   // btResetStack();
+    // Serial.println(F("[MQTT] Error while publishTopic! 'device_type' can't be empty, restarting BlueTooth Stack)"));
+    // btResetStack();
    
   } 
   
@@ -377,19 +415,19 @@ void publishTopic(enum field_names field_name, String value){
     }
 
     #ifdef HOMEASSISTANT
-      String publishHATopicBuf = "homeassistant/sensor/"+ String(settings.bluetti_device_id) +"/"+ map_field_name(field_name).c_str() +"/config";
+      String publishHATopicBuf = "homeassistant/"+ map_field_type(field_type) +"/"+ String(settings.bluetti_device_id) +"/"+ map_field_name(field_name) +"/config";
       String payload = "{\"state_topic\":\""+ String(publishTopicBuf) +"\","
         "\"device\":{"
           "\"identifiers\":[\""+ settings.bluetti_device_id +"\"],"
           "\"manufacturer\":\"Bluetti\","
           "\"name\":\""+ settings.bluetti_device_id +"\","
-          "\"model\":\""+ BLUETTI_TYPE +"\"},"
-        "\"unique_id\":\""+ settings.bluetti_device_id +"_"+ map_field_name(field_name).c_str() +"\","
-        "\"object_id\":\""+ BLUETTI_TYPE +"_"+ map_field_name(field_name).c_str() +"\","
-        "\"name\":\""+ field_name +"\","
-        "\"unit_of_measurement\":\"%\","
-        "\"device_class\":\"battery\","
-        "\"state_class\":\"measurement\","
+          "\"model\":\""+ DEVICE_NAME +"\"},"
+        "\"unique_id\":\""+ settings.bluetti_device_id +"_"+ map_field_name(field_name) +"\","
+        "\"object_id\":\""+ DEVICE_NAME +"_"+ map_field_name(field_name) +"\","
+        "\"name\":\""+ map_field_name(field_name) +"\","
+        // "\"unit_of_measurement\":\"%\","
+        // "\"device_class\":\"battery\","
+        // "\"state_class\":\"measurement\","
         "\"force_update\":true}";
       if (!client.publish( publishHATopicBuf.c_str(), payload.c_str() )){
         publishErrorCount++;
@@ -406,9 +444,9 @@ void publishTopic(enum field_names field_name, String value){
       }
     #endif
   }
-  
  
 }
+
 
 void publishDeviceState(){
   char publishTopicBuf[1024];
